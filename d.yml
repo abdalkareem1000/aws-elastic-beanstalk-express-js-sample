@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+  # Jenkins service to run in a container
+  jenkins:
+    image: jenkins/jenkins:lts-jdk11  # Use the Long-Term Support Jenkins image with JDK 11
+    container_name: jenkins  # Name the Jenkins container
+    privileged: true  # Allow Jenkins to execute Docker commands inside the container
+    ports:
+      - "8080:8080"  # Expose Jenkins web interface on port 8080
+      - "50000:50000"  # Expose Jenkins agent port for incoming connections
+    environment:
+      - DOCKER_HOST=tcp://dind:2376  # Point Jenkins to use Docker-in-Docker for Docker commands
+      - DOCKER_CERT_PATH=/certs/client  # Path to TLS certificates for secure Docker communication
+      - DOCKER_TLS_VERIFY=1  # Enable TLS verification for Docker commands
+    volumes:
+      - jenkins-data:/var/jenkins_home  # Persist Jenkins data (job configurations, build logs, etc.)
+      - /usr/bin/docker:/usr/bin/docker  # Mount Docker binary from the host to allow Jenkins to execute Docker commands
+      - docker-certs-client:/certs/client:ro  # Mount Docker client certificates for secure communication with DinD
+    networks:
+      - jenkins-network  # Attach the Jenkins service to the same network as DinD to enable communication
+
+  # Docker-in-Docker (DinD) service to allow Jenkins to run Docker commands inside containers
+  dind:
+    image: docker:19.03.12-dind  # Use a specific Docker-in-Docker image version
+    container_name: dind  # Name the DinD container
+    privileged: true  # Allow DinD to run Docker containers within itself
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs  # Enable TLS for secure Docker daemon communication
+    volumes:
+      - jenkins-data:/var/jenkins_home  # Share the Jenkins data volume to store Docker-related files
+      - docker-certs-client:/certs/client  # Mount certificates for the Docker client to authenticate with the DinD daemon
+    networks:
+      - jenkins-network  # Attach the DinD service to the same network as Jenkins for communication
+
+# Declare shared volumes between the Jenkins and DinD services
+volumes:
+  jenkins-data:  # Persist Jenkins and Docker data
+  docker-certs-client:  # Store Docker client certificates for secure communication
+
+# Define a custom network that Jenkins and DinD will use to communicate
+networks:
+  jenkins-network:
