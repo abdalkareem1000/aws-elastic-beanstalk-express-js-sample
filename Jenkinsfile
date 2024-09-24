@@ -1,59 +1,75 @@
 pipeline {
+    // Use Docker as the agent and specify the Docker image to be 'node:16'
     agent {
-        // Use Node.js 16 Docker image as the build agent
         docker {
             image 'node:16'
-            args '-v /var/run/docker.sock:/var/run/docker.sock'  // Mount Docker if needed for further steps
+            // Mount Docker socket so that Jenkins can communicate with the Docker daemon on the host machine
+            args '-v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
 
+    // Environment variables (Optional)
     environment {
-        // Fetch Snyk API token from Jenkins credentials (make sure this is stored securely in Jenkins credentials)
-        SNYK_TOKEN = credentials('snyk-api-token')  
+        // Add any environment variables you need, such as the DOCKER_HOST if required.
+        DOCKER_HOST = "unix:///var/run/docker.sock"
+        // You could also add Snyk API token here if needed for security scanning
+        // SNYK_TOKEN = credentials('snyk-api-token')
     }
 
+    // Define the stages of the pipeline
     stages {
+
+        // Stage 1: Install project dependencies
         stage('Install Dependencies') {
             steps {
-                // Install Node.js project dependencies using npm
+                // Run 'npm install' to install the dependencies specified in package.json
                 sh 'npm install --save'
             }
         }
 
+        // Stage 2: Build the project
         stage('Build') {
             steps {
-                // You can add other build-related steps here if needed
+                // Run 'npm run build' to build the project (this assumes you have a build script in package.json)
                 sh 'npm run build'
             }
         }
 
+        // Stage 3: Run tests
         stage('Test') {
             steps {
-                // Run tests, if available, using npm
+                // Run 'npm test' to execute tests (this assumes you have a test script in package.json)
                 sh 'npm test'
             }
         }
 
-        // New stage for Snyk vulnerability scanning
+        // (Optional) Stage 4: Security scan with Snyk (if integrated)
+        /*
         stage('Snyk Security Scan') {
             steps {
                 echo 'Running Snyk security scan...'
-                // Install Snyk globally within the pipeline environment
+                // Install Snyk globally in the container
                 sh 'npm install -g snyk'
-                // Authenticate Snyk using the token stored in Jenkins credentials
+                // Authenticate Snyk using the token stored in Jenkins credentials (ensure it's added in Jenkins)
                 sh 'snyk auth $SNYK_TOKEN'
-                // Run Snyk test with a high severity threshold to halt on critical/high vulnerabilities
+                // Run the Snyk test to scan for vulnerabilities and fail on high/critical issues
                 sh 'snyk test --severity-threshold=high'
             }
         }
+        */
     }
 
+    // Post-build actions to log whether the pipeline succeeded or failed
     post {
+        // If the build is successful
         success {
             echo 'Build, tests, and security scan completed successfully!'
         }
+
+        // If the build fails at any stage
         failure {
             echo 'Build, tests, or security scan failed.'
         }
     }
 }
+
