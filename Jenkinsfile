@@ -18,6 +18,14 @@ pipeline {
 
     // Define the stages of the pipeline
     stages {
+        // Pre-stage: Check Docker access
+        stage('Check Docker Access') {
+            steps {
+                echo 'Checking Docker access...'
+                // Test if Docker is accessible by listing containers
+                sh 'docker ps'
+            }
+        }
 
         // Stage 1: Install project dependencies
         stage('Install Dependencies') {
