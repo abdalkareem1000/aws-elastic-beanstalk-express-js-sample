@@ -1,4 +1,5 @@
 version: '3'
+<<<<<<< HEAD
 
 services:
   jenkins:
@@ -37,3 +38,31 @@ volumes:
 
 networks:
   jenkins-network:
+=======
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+
+  dind:
+    image: docker:20.10-dind
+    container_name: dind
+    privileged: true
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    ports:
+      - "2375:2375"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  jenkins_home:
+>>>>>>> 1da5fbf (Updated Jenkinsfile with logging)
